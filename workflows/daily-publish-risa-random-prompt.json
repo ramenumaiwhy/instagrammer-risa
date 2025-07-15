@@ -1,0 +1,558 @@
+{
+  "name": "Daily Publish Risa - ランダムプロンプト投稿",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 20 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -3000,
+        380
+      ],
+      "id": "schedule-trigger-20",
+      "name": "毎日20:00に実行"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -3000,
+        180
+      ],
+      "id": "manual-trigger",
+      "name": "手動実行用",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appT0xl5FQXJkGXJA",
+          "mode": "list",
+          "cachedResultName": "instagrammer-risa",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl82LazWZ1dO2kN2",
+          "mode": "list",
+          "cachedResultName": "i2v_prompts",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA/tbl82LazWZ1dO2kN2"
+        },
+        "filterByFormula": "{is_active} = TRUE()",
+        "returnAll": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -2700,
+        380
+      ],
+      "id": "get-all-prompts",
+      "name": "全プロンプトを取得",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "zck4Yxxo2C5leQFC",
+          "name": "Airtable sns workspace PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "randomItem",
+        "randomItemsNumber": 1
+      },
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3.1,
+      "position": [
+        -2500,
+        380
+      ],
+      "id": "select-random-prompt",
+      "name": "ランダムに1つ選択"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "prompt_text",
+              "name": "prompt_text",
+              "value": "={{ $json.prompt_en }}",
+              "type": "string"
+            },
+            {
+              "id": "prompt_title",
+              "name": "prompt_title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "prompt_ja",
+              "name": "prompt_ja",
+              "value": "={{ $json.prompt_ja }}",
+              "type": "string"
+            },
+            {
+              "id": "prompt_id",
+              "name": "prompt_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2300,
+        380
+      ],
+      "id": "set-prompt-data",
+      "name": "プロンプトデータを設定"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.example.com/generate-image",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{ $json.prompt_text }}"
+            },
+            {
+              "name": "model",
+              "value": "stable-diffusion-xl"
+            },
+            {
+              "name": "width",
+              "value": "1080"
+            },
+            {
+              "name": "height",
+              "value": "1080"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2100,
+        380
+      ],
+      "id": "generate-image",
+      "name": "画像を生成"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appT0xl5FQXJkGXJA",
+          "mode": "list",
+          "cachedResultName": "instagrammer-risa",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblKFdtjRr11K2Wj9",
+          "mode": "list",
+          "cachedResultName": "posts",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA/tblKFdtjRr11K2Wj9"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "caption": "={{ $('プロンプトデータを設定').item.json.prompt_ja + '\\n\\n#AIアート #教育コンテンツ #' + $('プロンプトデータを設定').item.json.prompt_title.replace(/ /g, '') }}",
+            "status": "scheduled",
+            "post_date": "={{ $now.plus({minutes: 5}) }}",
+            "account": ["recX7SczgRslsMUvx"],
+            "content_type": "single_image"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -1900,
+        380
+      ],
+      "id": "create-post-record",
+      "name": "投稿レコードを作成",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "zck4Yxxo2C5leQFC",
+          "name": "Airtable sns workspace PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appT0xl5FQXJkGXJA",
+          "mode": "list",
+          "cachedResultName": "instagrammer-risa",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl82LazWZ1dO2kN2",
+          "mode": "list",
+          "cachedResultName": "i2v_prompts",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA/tbl82LazWZ1dO2kN2"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('プロンプトデータを設定').item.json.prompt_id }}",
+            "usage_count": "={{ ($json.usage_count || 0) + 1 }}",
+            "last_used": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "id"
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -1700,
+        380
+      ],
+      "id": "update-prompt-usage",
+      "name": "プロンプト使用回数を更新",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "zck4Yxxo2C5leQFC",
+          "name": "Airtable sns workspace PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=🎲 ランダムプロンプトで画像生成を開始しました！\n\n📝 選択されたプロンプト:\n**{{ $('プロンプトデータを設定').item.json.prompt_title }}**\n\n🌐 英語:\n```\n{{ $('プロンプトデータを設定').item.json.prompt_text }}\n```\n\n🇯🇵 日本語:\n```\n{{ $('プロンプトデータを設定').item.json.prompt_ja }}\n```\n\n⏰ 実行時刻: {{ $now.format('YYYY年MM月DD日 HH:mm') }}",
+        "options": {},
+        "embeds": {
+          "values": [
+            {
+              "color": "#00BFFF",
+              "title": "画像生成開始",
+              "footer": "instagrammer-risa"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -1500,
+        380
+      ],
+      "id": "discord-generation-start",
+      "name": "Discord通知（生成開始）",
+      "webhookId": "1394317186608271400/jb9d34RO3PLZ6kjWwP4puKKNaxEJ_ZhXprVfkAboml-elf5r770Ocu9Bv_DvU87QqBYc",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "new-discord-webhook",
+          "name": "Discord Webhook Risa"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "media_url",
+              "name": "media_url",
+              "value": "={{ $json.image_url }}",
+              "type": "string"
+            },
+            {
+              "id": "post_id",
+              "name": "post_id",
+              "value": "={{ $('投稿レコードを作成').item.json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1300,
+        380
+      ],
+      "id": "set-media-data",
+      "name": "メディアデータを設定"
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "binaryPropertyName": "data",
+        "base": {
+          "__rl": true,
+          "value": "appT0xl5FQXJkGXJA",
+          "mode": "list",
+          "cachedResultName": "instagrammer-risa",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblAttachments",
+          "mode": "list",
+          "cachedResultName": "attachments",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA/tblAttachments"
+        },
+        "attachToRecordId": "={{ $json.post_id }}",
+        "fieldName": "media",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -1100,
+        380
+      ],
+      "id": "upload-to-airtable",
+      "name": "Airtableに画像をアップロード",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "zck4Yxxo2C5leQFC",
+          "name": "Airtable sns workspace PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=✅ 画像生成と投稿スケジュールが完了しました！\n\n📅 投稿予定時刻: {{ $('投稿レコードを作成').item.json.post_date.format('YYYY年MM月DD日 HH:mm') }}\n\n🎨 使用プロンプト: {{ $('プロンプトデータを設定').item.json.prompt_title }}\n\n⏰ 完了時刻: {{ $now.format('YYYY年MM月DD日 HH:mm') }}",
+        "options": {},
+        "embeds": {
+          "values": [
+            {
+              "color": "#00FF00",
+              "title": "投稿スケジュール完了",
+              "footer": "instagrammer-risa"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -900,
+        380
+      ],
+      "id": "discord-schedule-success",
+      "name": "Discord通知（スケジュール完了）",
+      "webhookId": "1394317186608271400/jb9d34RO3PLZ6kjWwP4puKKNaxEJ_ZhXprVfkAboml-elf5r770Ocu9Bv_DvU87QqBYc",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "new-discord-webhook",
+          "name": "Discord Webhook Risa"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=❌ エラーが発生しました\n\n💡 エラー内容:\n```\n{{ $json.error.message || 'Unknown error' }}\n```\n\n⏰ 発生時刻: {{ $now.format('YYYY年MM月DD日 HH:mm') }}",
+        "options": {},
+        "embeds": {
+          "values": [
+            {
+              "color": "#FF0000",
+              "title": "エラー発生",
+              "footer": "instagrammer-risa"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -900,
+        580
+      ],
+      "id": "discord-error",
+      "name": "Discord通知（エラー）",
+      "webhookId": "1394317186608271400/jb9d34RO3PLZ6kjWwP4puKKNaxEJ_ZhXprVfkAboml-elf5r770Ocu9Bv_DvU87QqBYc",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "new-discord-webhook",
+          "name": "Discord Webhook Risa"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "毎日20:00に実行": {
+      "main": [
+        [
+          {
+            "node": "全プロンプトを取得",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "手動実行用": {
+      "main": [
+        [
+          {
+            "node": "全プロンプトを取得",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "全プロンプトを取得": {
+      "main": [
+        [
+          {
+            "node": "ランダムに1つ選択",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ランダムに1つ選択": {
+      "main": [
+        [
+          {
+            "node": "プロンプトデータを設定",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "プロンプトデータを設定": {
+      "main": [
+        [
+          {
+            "node": "画像を生成",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "画像を生成": {
+      "main": [
+        [
+          {
+            "node": "投稿レコードを作成",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "投稿レコードを作成": {
+      "main": [
+        [
+          {
+            "node": "プロンプト使用回数を更新",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "プロンプト使用回数を更新": {
+      "main": [
+        [
+          {
+            "node": "Discord通知（生成開始）",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discord通知（生成開始）": {
+      "main": [
+        [
+          {
+            "node": "メディアデータを設定",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "メディアデータを設定": {
+      "main": [
+        [
+          {
+            "node": "Airtableに画像をアップロード",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtableに画像をアップロード": {
+      "main": [
+        [
+          {
+            "node": "Discord通知（スケジュール完了）",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": ""
+  },
+  "tags": []
+}

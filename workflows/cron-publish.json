@@ -1,0 +1,1013 @@
+{
+  "name": "Cron publish君",
+  "nodes": [
+    {
+      "parameters": {
+        "graphApiVersion": "v22.0",
+        "node": "={{ $json.id }}",
+        "options": {
+          "fields": {
+            "field": [
+              {
+                "name": "id"
+              },
+              {
+                "name": "status"
+              },
+              {
+                "name": "status_code"
+              }
+            ]
+          }
+        }
+      },
+      "id": "1643cacd-2118-455b-b4ed-ee6a12f9047c",
+      "name": "Check status of media uploaded before",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "position": [
+        -1840,
+        380
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "3gsU8uXWjcDhJdKl",
+          "name": "Facebook Graph account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v22.0",
+        "node": "={{ $json.business_account_id }}",
+        "edge": "media",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "image_url",
+                "value": "={{ $json.image_url }}"
+              },
+              {
+                "name": "caption",
+                "value": "={{ $json.caption }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "adc846ee-4d46-49ed-b7c9-364037e97e02",
+      "name": "Upload media",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "position": [
+        -2040,
+        380
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "3gsU8uXWjcDhJdKl",
+          "name": "Facebook Graph account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "0304efee-33b2-499e-bad1-9238c1fc2999",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json.status_code }}",
+              "rightValue": "FINISHED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f1d905e4-32bf-49fa-a852-bda70b158502",
+      "name": "Is finished uploading?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -1640,
+        380
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "0304efee-33b2-499e-bad1-9238c1fc2999",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json.status_code }}",
+              "rightValue": "PUBLISHED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "12be0322-6bb8-4e4f-8c26-215c53b5916c",
+      "name": "Is finished posting?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -980,
+        120
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v20.0",
+        "node": "={{ $('Set IG post data').item.json.business_account_id }}",
+        "edge": "media_publish",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "creation_id",
+                "value": "={{ $json.id }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "ab1d033e-212b-4766-8f1f-864826589809",
+      "name": "Post media",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "position": [
+        -1420,
+        240
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "3gsU8uXWjcDhJdKl",
+          "name": "Facebook Graph account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "graphApiVersion": "v20.0",
+        "node": "={{ $('Check status of media uploaded before').item.json.id }}",
+        "options": {
+          "fields": {
+            "field": [
+              {
+                "name": "id"
+              },
+              {
+                "name": "status"
+              },
+              {
+                "name": "status_code"
+              }
+            ]
+          }
+        }
+      },
+      "id": "4179c58f-d181-4f82-9bfd-85cd4cef7b58",
+      "name": "Check status of media posted before",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "position": [
+        -1220,
+        240
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "3gsU8uXWjcDhJdKl",
+          "name": "Facebook Graph account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=Instagramに投稿が完了したで！\n{{ $json.permalink }}\n```\n{{ $('Set IG post data').item.json.caption }}\n```",
+        "options": {},
+        "embeds": {
+          "values": [
+            {
+              "url": "={{ $json.permalink }}",
+              "image": "={{ $('Set IG post data').item.json.image_url }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        20
+      ],
+      "id": "51081cc7-2b79-4fa3-850a-e21b253ccd07",
+      "name": "Send SUCCESS msg to post",
+      "webhookId": "60c87d58-70e8-4010-8c42-342da6c031a8",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "B0o72rgnv4tshcwX",
+          "name": "Discord Webhook ぬちインコ"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=Instagram の 投稿 に失敗！残念賞！",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        300
+      ],
+      "id": "66c24174-9f3e-4a73-9511-d58e90cb36af",
+      "name": "Send FAILURE to post msg",
+      "webhookId": "60c87d58-70e8-4010-8c42-342da6c031a8",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "B0o72rgnv4tshcwX",
+          "name": "Discord Webhook ぬちインコ"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=Instagram の Upload Media に失敗！残念賞！",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -1420,
+        540
+      ],
+      "id": "215482e4-c978-4c9d-b32a-0efeec0635bd",
+      "name": "Send FAILURE to upload msg",
+      "webhookId": "60c87d58-70e8-4010-8c42-342da6c031a8",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "B0o72rgnv4tshcwX",
+          "name": "Discord Webhook ぬちインコ"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appc5ONBeNAFkY3sC",
+          "mode": "list",
+          "cachedResultName": "Instagram Auto gen",
+          "cachedResultUrl": "https://airtable.com/appc5ONBeNAFkY3sC"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblKFdtjRr11K2Wj9",
+          "mode": "list",
+          "cachedResultName": "posts",
+          "cachedResultUrl": "https://airtable.com/appc5ONBeNAFkY3sC/tblKFdtjRr11K2Wj9"
+        },
+        "filterByFormula": "AND({status} = 'scheduled', {post_date} != '', {post_date} <= NOW())",
+        "returnAll": false,
+        "limit": 1,
+        "options": {},
+        "sort": {
+          "property": [
+            {
+              "field": "post_date"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -2400,
+        380
+      ],
+      "id": "5be44649-68e7-4244-bbca-c2c12e05598a",
+      "name": "Get post",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "zck4Yxxo2C5leQFC",
+          "name": "Airtable sns workspace PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3e77edd4-9485-4d01-a8dd-11b615908af5",
+              "name": "caption",
+              "value": "={{ $json.caption }}",
+              "type": "string"
+            },
+            {
+              "id": "89ccbfda-af56-4b90-a25a-0783dad04b82",
+              "name": "business_account_id",
+              "value": "={{ $json['business_account_id (from account)'][0] }}",
+              "type": "string"
+            },
+            {
+              "id": "93df011d-239f-4d01-b37e-164815053078",
+              "name": "image_url",
+              "value": "={{ $json['media_url (from attachment) (from post_attachments)'][0] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2220,
+        380
+      ],
+      "id": "b566f39a-544c-4021-9193-1d57ed96c33d",
+      "name": "Set IG post data"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appc5ONBeNAFkY3sC",
+          "mode": "list",
+          "cachedResultName": "Instagram Auto gen",
+          "cachedResultUrl": "https://airtable.com/appc5ONBeNAFkY3sC"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblKFdtjRr11K2Wj9",
+          "mode": "list",
+          "cachedResultName": "posts",
+          "cachedResultUrl": "https://airtable.com/appc5ONBeNAFkY3sC/tblKFdtjRr11K2Wj9"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "published",
+            "id": "={{ $('Get post').item.json.id }}",
+            "post_date": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "caption",
+              "displayName": "caption",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "content_type",
+              "displayName": "content_type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "single_image",
+                  "value": "single_image"
+                },
+                {
+                  "name": "carousel",
+                  "value": "carousel"
+                },
+                {
+                  "name": "video",
+                  "value": "video"
+                },
+                {
+                  "name": "reel",
+                  "value": "reel"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "rejected",
+                  "value": "rejected"
+                },
+                {
+                  "name": "scheduled",
+                  "value": "scheduled"
+                },
+                {
+                  "name": "published",
+                  "value": "published"
+                },
+                {
+                  "name": "failed",
+                  "value": "failed"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "post_date",
+              "displayName": "post_date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "post_url",
+              "displayName": "post_url",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "account",
+              "displayName": "account",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "post_attachments",
+              "displayName": "post_attachments",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "business_account_id (from account)",
+              "displayName": "business_account_id (from account)",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "media_url (from attachment) (from post_attachments)",
+              "displayName": "media_url (from attachment) (from post_attachments)",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -720,
+        20
+      ],
+      "id": "b56ea3df-d679-42b4-8ddc-c99d167c83ab",
+      "name": "Change status to published",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "zck4Yxxo2C5leQFC",
+          "name": "Airtable sns workspace PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appc5ONBeNAFkY3sC",
+          "mode": "list",
+          "cachedResultName": "Instagram Auto gen",
+          "cachedResultUrl": "https://airtable.com/appc5ONBeNAFkY3sC"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblKFdtjRr11K2Wj9",
+          "mode": "list",
+          "cachedResultName": "posts",
+          "cachedResultUrl": "https://airtable.com/appc5ONBeNAFkY3sC/tblKFdtjRr11K2Wj9"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "failed",
+            "id": "={{ $('Get post').item.json.id }}",
+            "post_date": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "caption",
+              "displayName": "caption",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "content_type",
+              "displayName": "content_type",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "single_image",
+                  "value": "single_image"
+                },
+                {
+                  "name": "carousel",
+                  "value": "carousel"
+                },
+                {
+                  "name": "video",
+                  "value": "video"
+                },
+                {
+                  "name": "reel",
+                  "value": "reel"
+                }
+              ],
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "rejected",
+                  "value": "rejected"
+                },
+                {
+                  "name": "scheduled",
+                  "value": "scheduled"
+                },
+                {
+                  "name": "published",
+                  "value": "published"
+                },
+                {
+                  "name": "failed",
+                  "value": "failed"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "post_date",
+              "displayName": "post_date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "post_url",
+              "displayName": "post_url",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "account",
+              "displayName": "account",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "post_attachments",
+              "displayName": "post_attachments",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "array",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "business_account_id (from account)",
+              "displayName": "business_account_id (from account)",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            },
+            {
+              "id": "media_url (from attachment) (from post_attachments)",
+              "displayName": "media_url (from attachment) (from post_attachments)",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -720,
+        300
+      ],
+      "id": "9fe8effb-c4cf-45b9-ab2c-fa3c1208f425",
+      "name": "Change status to failed",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "zck4Yxxo2C5leQFC",
+          "name": "Airtable sns workspace PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2700,
+        460
+      ],
+      "id": "44656355-5dc8-422b-83c4-4b55fc0814f1",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2700,
+        220
+      ],
+      "id": "540ad425-2a5c-4c48-ad0c-a4f696b9736c",
+      "name": "When clicking ‘Execute workflow’",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "graphApiVersion": "v22.0",
+        "node": "={{ $('Post media').item.json.id }}",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "fields",
+                "value": "id,permalink,shortcode,timestamp"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        20
+      ],
+      "id": "8ee02536-f974-4842-be74-2d3a222d0055",
+      "name": "Get posted permalink",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "3gsU8uXWjcDhJdKl",
+          "name": "Facebook Graph account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Check status of media uploaded before": {
+      "main": [
+        [
+          {
+            "node": "Is finished uploading?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload media": {
+      "main": [
+        [
+          {
+            "node": "Check status of media uploaded before",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is finished uploading?": {
+      "main": [
+        [
+          {
+            "node": "Post media",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send FAILURE to upload msg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is finished posting?": {
+      "main": [
+        [
+          {
+            "node": "Change status to published",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Change status to failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post media": {
+      "main": [
+        [
+          {
+            "node": "Check status of media posted before",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check status of media posted before": {
+      "main": [
+        [
+          {
+            "node": "Is finished posting?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get post": {
+      "main": [
+        [
+          {
+            "node": "Set IG post data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set IG post data": {
+      "main": [
+        [
+          {
+            "node": "Upload media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Change status to published": {
+      "main": [
+        [
+          {
+            "node": "Get posted permalink",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Change status to failed": {
+      "main": [
+        [
+          {
+            "node": "Send FAILURE to post msg",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get posted permalink": {
+      "main": [
+        [
+          {
+            "node": "Send SUCCESS msg to post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7ab3795c-0d2b-4d99-a028-48a015970d9c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7534cd486a8a4cf91dae9f4cc142f8868db56aff6162866822930defb06560ea"
+  },
+  "id": "mKBjz8sAGTIRhgrD",
+  "tags": [
+    {
+      "createdAt": "2025-06-28T08:44:01.145Z",
+      "updatedAt": "2025-06-28T08:44:01.145Z",
+      "id": "BwaxJACvoE8LI6oI",
+      "name": "lgtm"
+    }
+  ]
+}

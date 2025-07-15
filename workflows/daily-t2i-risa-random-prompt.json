@@ -1,0 +1,683 @@
+{
+  "name": "Daily T2I Risa - ランダムプロンプトで画像生成",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 21 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -3000,
+        380
+      ],
+      "id": "schedule-trigger-21",
+      "name": "毎日21:00に実行"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -3000,
+        180
+      ],
+      "id": "manual-trigger",
+      "name": "手動実行用",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appT0xl5FQXJkGXJA",
+          "mode": "list",
+          "cachedResultName": "instagrammer-risa",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl82LazWZ1dO2kN2",
+          "mode": "list",
+          "cachedResultName": "i2v_prompts",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA/tbl82LazWZ1dO2kN2"
+        },
+        "filterByFormula": "AND({is_active} = TRUE(), OR({category} = 't2i', {category} = 'both', {category} = ''))",
+        "returnAll": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -2700,
+        380
+      ],
+      "id": "get-all-prompts",
+      "name": "T2I対応プロンプトを取得",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "zck4Yxxo2C5leQFC",
+          "name": "Airtable sns workspace PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "randomItem",
+        "randomItemsNumber": 1
+      },
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3.1,
+      "position": [
+        -2500,
+        380
+      ],
+      "id": "select-random-prompt",
+      "name": "ランダムに1つ選択"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "prompt_text",
+              "name": "prompt_text",
+              "value": "={{ $json.prompt_en }}",
+              "type": "string"
+            },
+            {
+              "id": "prompt_title",
+              "name": "prompt_title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "prompt_ja",
+              "name": "prompt_ja",
+              "value": "={{ $json.prompt_ja }}",
+              "type": "string"
+            },
+            {
+              "id": "prompt_id",
+              "name": "prompt_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "t2i_prompt",
+              "name": "t2i_prompt",
+              "value": "={{ $json.prompt_en + ', high quality image, 4K resolution, professional photography, detailed, sharp focus' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2300,
+        380
+      ],
+      "id": "set-prompt-data",
+      "name": "T2Iプロンプトデータを設定"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.example.com/generate-image",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_T2I_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{ $json.t2i_prompt }}"
+            },
+            {
+              "name": "model",
+              "value": "stable-diffusion-xl"
+            },
+            {
+              "name": "width",
+              "value": "1080"
+            },
+            {
+              "name": "height",
+              "value": "1920"
+            },
+            {
+              "name": "aspect_ratio",
+              "value": "9:16"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2100,
+        380
+      ],
+      "id": "generate-image",
+      "name": "画像を生成"
+    },
+    {
+      "parameters": {
+        "mode": "wait",
+        "value": 10000
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -1950,
+        380
+      ],
+      "id": "wait-for-generation",
+      "name": "生成待機（10秒）"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('画像を生成').item.json.status_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_T2I_API_KEY"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1800,
+        380
+      ],
+      "id": "check-image-status",
+      "name": "画像生成ステータス確認"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appT0xl5FQXJkGXJA",
+          "mode": "list",
+          "cachedResultName": "instagrammer-risa",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblKFdtjRr11K2Wj9",
+          "mode": "list",
+          "cachedResultName": "posts",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA/tblKFdtjRr11K2Wj9"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "caption": "={{ $('T2Iプロンプトデータを設定').item.json.prompt_ja + '\\n\\n🎨 AI画像生成\\n\\n#AIArt #T2I #教育コンテンツ #' + $('T2Iプロンプトデータを設定').item.json.prompt_title.replace(/ /g, '') + ' #画像生成AI' }}",
+            "status": "scheduled",
+            "post_date": "={{ $now.plus({hours: 1}) }}",
+            "account": ["recX7SczgRslsMUvx"],
+            "content_type": "single_image",
+            "image_url": "={{ $json.image_url }}"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -1600,
+        380
+      ],
+      "id": "create-post-record",
+      "name": "投稿レコードを作成",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "zck4Yxxo2C5leQFC",
+          "name": "Airtable sns workspace PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appT0xl5FQXJkGXJA",
+          "mode": "list",
+          "cachedResultName": "instagrammer-risa",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl82LazWZ1dO2kN2",
+          "mode": "list",
+          "cachedResultName": "i2v_prompts",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA/tbl82LazWZ1dO2kN2"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('T2Iプロンプトデータを設定').item.json.prompt_id }}",
+            "t2i_usage_count": "={{ ($json.t2i_usage_count || 0) + 1 }}",
+            "last_t2i_used": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "id"
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -1400,
+        380
+      ],
+      "id": "update-prompt-usage",
+      "name": "T2I使用回数を更新",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "zck4Yxxo2C5leQFC",
+          "name": "Airtable sns workspace PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=🎨 T2Iランダムプロンプトで画像生成を開始しました！\n\n📝 選択されたプロンプト:\n**{{ $('T2Iプロンプトデータを設定').item.json.prompt_title }}**\n\n🌐 英語（T2I用）:\n```\n{{ $('T2Iプロンプトデータを設定').item.json.t2i_prompt }}\n```\n\n🇯🇵 日本語:\n```\n{{ $('T2Iプロンプトデータを設定').item.json.prompt_ja }}\n```\n\n⏰ 実行時刻: {{ $now.format('YYYY年MM月DD日 HH:mm') }}",
+        "options": {},
+        "embeds": {
+          "values": [
+            {
+              "color": "#FF00FF",
+              "title": "T2I画像生成開始",
+              "footer": "instagrammer-risa T2I"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -1200,
+        380
+      ],
+      "id": "discord-generation-start",
+      "name": "Discord通知（T2I生成開始）",
+      "webhookId": "1394317186608271400/jb9d34RO3PLZ6kjWwP4puKKNaxEJ_ZhXprVfkAboml-elf5r770Ocu9Bv_DvU87QqBYc",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "new-discord-webhook",
+          "name": "Discord Webhook Risa"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "image_url",
+              "name": "image_url",
+              "value": "={{ $('画像生成ステータス確認').item.json.image_url }}",
+              "type": "string"
+            },
+            {
+              "id": "post_id",
+              "name": "post_id",
+              "value": "={{ $('投稿レコードを作成').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "generation_time",
+              "name": "generation_time",
+              "value": "={{ $('画像生成ステータス確認').item.json.generation_time_seconds }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1000,
+        380
+      ],
+      "id": "set-image-data",
+      "name": "画像データを設定"
+    },
+    {
+      "parameters": {
+        "operation": "downloadFile",
+        "url": "={{ $json.image_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "image_file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -800,
+        380
+      ],
+      "id": "download-image",
+      "name": "画像をダウンロード"
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "binaryPropertyName": "image_file",
+        "base": {
+          "__rl": true,
+          "value": "appT0xl5FQXJkGXJA",
+          "mode": "list",
+          "cachedResultName": "instagrammer-risa",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblKFdtjRr11K2Wj9",
+          "mode": "list",
+          "cachedResultName": "posts",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA/tblKFdtjRr11K2Wj9"
+        },
+        "id": "={{ $('画像データを設定').item.json.post_id }}",
+        "fieldName": "media",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -600,
+        380
+      ],
+      "id": "upload-to-airtable",
+      "name": "Airtableに画像をアップロード",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "zck4Yxxo2C5leQFC",
+          "name": "Airtable sns workspace PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=✅ T2I画像生成と投稿スケジュールが完了しました！\n\n📅 投稿予定時刻: {{ $('投稿レコードを作成').item.json.post_date.format('YYYY年MM月DD日 HH:mm') }}\n\n🎨 使用プロンプト: {{ $('T2Iプロンプトデータを設定').item.json.prompt_title }}\n\n⏱️ 生成時間: {{ $('画像データを設定').item.json.generation_time }}秒\n\n⏰ 完了時刻: {{ $now.format('YYYY年MM月DD日 HH:mm') }}",
+        "options": {},
+        "embeds": {
+          "values": [
+            {
+              "color": "#00FF00",
+              "title": "T2I投稿スケジュール完了",
+              "fields": [
+                {
+                  "name": "画像サイズ",
+                  "value": "1080x1920",
+                  "inline": true
+                },
+                {
+                  "name": "アスペクト比",
+                  "value": "9:16 (縦型)",
+                  "inline": true
+                }
+              ],
+              "footer": "instagrammer-risa T2I"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        380
+      ],
+      "id": "discord-schedule-success",
+      "name": "Discord通知（T2Iスケジュール完了）",
+      "webhookId": "1394317186608271400/jb9d34RO3PLZ6kjWwP4puKKNaxEJ_ZhXprVfkAboml-elf5r770Ocu9Bv_DvU87QqBYc",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "new-discord-webhook",
+          "name": "Discord Webhook Risa"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=❌ T2I生成でエラーが発生しました\n\n💡 エラー内容:\n```\n{{ $json.error.message || 'Unknown error' }}\n```\n\n📝 使用プロンプト: {{ $('T2Iプロンプトデータを設定').item.json.prompt_title || 'N/A' }}\n\n⏰ 発生時刻: {{ $now.format('YYYY年MM月DD日 HH:mm') }}",
+        "options": {},
+        "embeds": {
+          "values": [
+            {
+              "color": "#FF0000",
+              "title": "T2Iエラー発生",
+              "footer": "instagrammer-risa T2I"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        580
+      ],
+      "id": "discord-error",
+      "name": "Discord通知（T2Iエラー）",
+      "webhookId": "1394317186608271400/jb9d34RO3PLZ6kjWwP4puKKNaxEJ_ZhXprVfkAboml-elf5r770Ocu9Bv_DvU87QqBYc",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "new-discord-webhook",
+          "name": "Discord Webhook Risa"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "毎日21:00に実行": {
+      "main": [
+        [
+          {
+            "node": "T2I対応プロンプトを取得",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "手動実行用": {
+      "main": [
+        [
+          {
+            "node": "T2I対応プロンプトを取得",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "T2I対応プロンプトを取得": {
+      "main": [
+        [
+          {
+            "node": "ランダムに1つ選択",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ランダムに1つ選択": {
+      "main": [
+        [
+          {
+            "node": "T2Iプロンプトデータを設定",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "T2Iプロンプトデータを設定": {
+      "main": [
+        [
+          {
+            "node": "画像を生成",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "画像を生成": {
+      "main": [
+        [
+          {
+            "node": "生成待機（10秒）",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "生成待機（10秒）": {
+      "main": [
+        [
+          {
+            "node": "画像生成ステータス確認",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "画像生成ステータス確認": {
+      "main": [
+        [
+          {
+            "node": "投稿レコードを作成",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "投稿レコードを作成": {
+      "main": [
+        [
+          {
+            "node": "T2I使用回数を更新",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "T2I使用回数を更新": {
+      "main": [
+        [
+          {
+            "node": "Discord通知（T2I生成開始）",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Discord通知（T2I生成開始）": {
+      "main": [
+        [
+          {
+            "node": "画像データを設定",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "画像データを設定": {
+      "main": [
+        [
+          {
+            "node": "画像をダウンロード",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "画像をダウンロード": {
+      "main": [
+        [
+          {
+            "node": "Airtableに画像をアップロード",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtableに画像をアップロード": {
+      "main": [
+        [
+          {
+            "node": "Discord通知（T2Iスケジュール完了）",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "discord-error"
+  },
+  "versionId": "1.0.0",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": ""
+  },
+  "tags": ["t2i", "image-generation", "automated"]
+}

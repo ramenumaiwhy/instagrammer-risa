@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx @modelcontextprotocol/server-airtable list-bases:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(tmux new-session:*)",
+      "Bash(tmux detach-client:*)",
+      "Bash(tmux attach:*)",
+      "Bash(export TERM=xterm-256color)",
+      "Bash(mv:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npx create-next-app:*)",
+      "Bash(tmux attach-session:*)",
+      "Bash(npx:*)",
+      "Bash(tmux list-sessions:*)",
+      "Bash(tmux capture-pane:*)",
+      "Bash(chmod:*)",
+      "Bash(cat:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": []
+  }
+}

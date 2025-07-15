@@ -1,0 +1,763 @@
+{
+  "name": "Daily Publish Risa - 毎日20時投稿",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 20 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2700,
+        380
+      ],
+      "id": "schedule-trigger-20",
+      "name": "毎日20:00に実行"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2700,
+        180
+      ],
+      "id": "manual-trigger",
+      "name": "手動実行用",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appT0xl5FQXJkGXJA",
+          "mode": "list",
+          "cachedResultName": "instagrammer-risa",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblKFdtjRr11K2Wj9",
+          "mode": "list",
+          "cachedResultName": "posts",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA/tblKFdtjRr11K2Wj9"
+        },
+        "filterByFormula": "AND({status} = 'scheduled', {account} = 'recX7SczgRslsMUvx')",
+        "returnAll": false,
+        "limit": 1,
+        "options": {},
+        "sort": {
+          "property": [
+            {
+              "field": "post_date"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -2400,
+        380
+      ],
+      "id": "get-scheduled-post",
+      "name": "スケジュール済み投稿を取得",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "zck4Yxxo2C5leQFC",
+          "name": "Airtable sns workspace PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "caption",
+              "name": "caption",
+              "value": "={{ $json.caption }}",
+              "type": "string"
+            },
+            {
+              "id": "business_account_id",
+              "name": "business_account_id",
+              "value": "17841475916632663",
+              "type": "string"
+            },
+            {
+              "id": "image_url",
+              "name": "image_url",
+              "value": "={{ $json['media_url (from attachment) (from post_attachments)'][0] }}",
+              "type": "string"
+            },
+            {
+              "id": "access_token",
+              "name": "access_token",
+              "value": "EAATcjQ4Mx8IBPEVVTAdEp6fYStcoy1VpT7ZActfOIeXvGHcdQdH466HLcQzL9SfcSrnpEYueYEuIjXfenCQIlEE5C4bkm4xATjep4A1eDEzdEJDLIgXZAByA9x0rBQJpP1XZBrZA3PNdzj51jn6OZAjPNV5fBeIIZAejZBy304P0rYYXAGGKsP9hSMdIgPoD8MZCkAZDZD",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2200,
+        380
+      ],
+      "id": "set-post-data",
+      "name": "投稿データを設定"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v22.0/{{ $json.business_account_id }}/media",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $json.image_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2000,
+        380
+      ],
+      "id": "upload-media",
+      "name": "メディアをアップロード"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v22.0/{{ $json.id }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "id,status_code"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $('投稿データを設定').item.json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1800,
+        380
+      ],
+      "id": "check-upload-status",
+      "name": "アップロード状態を確認"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-finished",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json.status_code }}",
+              "rightValue": "FINISHED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1600,
+        380
+      ],
+      "id": "check-if-finished",
+      "name": "アップロード完了？"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v22.0/{{ $('投稿データを設定').item.json.business_account_id }}/media_publish",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $('投稿データを設定').item.json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1400,
+        240
+      ],
+      "id": "publish-media",
+      "name": "メディアを公開"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v22.0/{{ $('アップロード状態を確認').item.json.id }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "id,status_code"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $('投稿データを設定').item.json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1200,
+        240
+      ],
+      "id": "check-publish-status",
+      "name": "公開状態を確認"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "condition-published",
+              "operator": {
+                "name": "filter.operator.equals",
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json.status_code }}",
+              "rightValue": "PUBLISHED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1000,
+        240
+      ],
+      "id": "check-if-published",
+      "name": "公開完了？"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v22.0/{{ $('メディアを公開').item.json.id }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "id,permalink,shortcode,timestamp"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $('投稿データを設定').item.json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -600,
+        120
+      ],
+      "id": "get-permalink",
+      "name": "投稿URLを取得"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appT0xl5FQXJkGXJA",
+          "mode": "list",
+          "cachedResultName": "instagrammer-risa",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblKFdtjRr11K2Wj9",
+          "mode": "list",
+          "cachedResultName": "posts",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA/tblKFdtjRr11K2Wj9"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "published",
+            "id": "={{ $('スケジュール済み投稿を取得').item.json.id }}",
+            "post_date": "={{ $now }}",
+            "post_url": "={{ $json.permalink }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "readOnly": false
+            },
+            {
+              "id": "post_date",
+              "displayName": "post_date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false
+            },
+            {
+              "id": "post_url",
+              "displayName": "post_url",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -400,
+        120
+      ],
+      "id": "update-status-published",
+      "name": "ステータスを更新（成功）",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "zck4Yxxo2C5leQFC",
+          "name": "Airtable sns workspace PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appT0xl5FQXJkGXJA",
+          "mode": "list",
+          "cachedResultName": "instagrammer-risa",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblKFdtjRr11K2Wj9",
+          "mode": "list",
+          "cachedResultName": "posts",
+          "cachedResultUrl": "https://airtable.com/appT0xl5FQXJkGXJA/tblKFdtjRr11K2Wj9"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "failed",
+            "id": "={{ $('スケジュール済み投稿を取得').item.json.id }}",
+            "post_date": "={{ $now }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "readOnly": false
+            },
+            {
+              "id": "post_date",
+              "displayName": "post_date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -400,
+        380
+      ],
+      "id": "update-status-failed",
+      "name": "ステータスを更新（失敗）",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "zck4Yxxo2C5leQFC",
+          "name": "Airtable sns workspace PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=🎉 Instagramに投稿が完了しました！\n{{ $json.permalink }}\n\n📝 投稿内容:\n```\n{{ $('投稿データを設定').item.json.caption }}\n```\n\n⏰ 投稿時刻: {{ $now.format('YYYY年MM月DD日 HH:mm') }}",
+        "options": {},
+        "embeds": {
+          "values": [
+            {
+              "url": "={{ $json.permalink }}",
+              "image": "={{ $('投稿データを設定').item.json.image_url }}",
+              "color": "#E1306C",
+              "title": "Instagram投稿完了",
+              "footer": "instagrammer-risa"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        120
+      ],
+      "id": "discord-success",
+      "name": "Discord通知（成功）",
+      "webhookId": "1394317186608271400/jb9d34RO3PLZ6kjWwP4puKKNaxEJ_ZhXprVfkAboml-elf5r770Ocu9Bv_DvU87QqBYc",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "new-discord-webhook",
+          "name": "Discord Webhook Risa"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=❌ Instagram投稿に失敗しました\n\n📝 投稿内容:\n```\n{{ $('投稿データを設定').item.json.caption || '(キャプションなし)' }}\n```\n\n⏰ 実行時刻: {{ $now.format('YYYY年MM月DD日 HH:mm') }}\n\n💡 エラー内容を確認してください",
+        "options": {},
+        "embeds": {
+          "values": [
+            {
+              "color": "#FF0000",
+              "title": "Instagram投稿失敗",
+              "footer": "instagrammer-risa"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        380
+      ],
+      "id": "discord-failure",
+      "name": "Discord通知（失敗）",
+      "webhookId": "1394317186608271400/jb9d34RO3PLZ6kjWwP4puKKNaxEJ_ZhXprVfkAboml-elf5r770Ocu9Bv_DvU87QqBYc",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "new-discord-webhook",
+          "name": "Discord Webhook Risa"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=⚠️ Instagramメディアのアップロードに失敗しました\n\n⏰ 実行時刻: {{ $now.format('YYYY年MM月DD日 HH:mm') }}\n\n💡 画像URLやアクセス権限を確認してください",
+        "options": {},
+        "embeds": {
+          "values": [
+            {
+              "color": "#FFA500",
+              "title": "メディアアップロード失敗",
+              "footer": "instagrammer-risa"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        -1400,
+        540
+      ],
+      "id": "discord-upload-failure",
+      "name": "Discord通知（アップロード失敗）",
+      "webhookId": "1394317186608271400/jb9d34RO3PLZ6kjWwP4puKKNaxEJ_ZhXprVfkAboml-elf5r770Ocu9Bv_DvU87QqBYc",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "new-discord-webhook",
+          "name": "Discord Webhook Risa"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "毎日20:00に実行": {
+      "main": [
+        [
+          {
+            "node": "スケジュール済み投稿を取得",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "手動実行用": {
+      "main": [
+        [
+          {
+            "node": "スケジュール済み投稿を取得",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "スケジュール済み投稿を取得": {
+      "main": [
+        [
+          {
+            "node": "投稿データを設定",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "投稿データを設定": {
+      "main": [
+        [
+          {
+            "node": "メディアをアップロード",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "メディアをアップロード": {
+      "main": [
+        [
+          {
+            "node": "アップロード状態を確認",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "アップロード状態を確認": {
+      "main": [
+        [
+          {
+            "node": "アップロード完了？",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "アップロード完了？": {
+      "main": [
+        [
+          {
+            "node": "メディアを公開",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Discord通知（アップロード失敗）",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "メディアを公開": {
+      "main": [
+        [
+          {
+            "node": "公開状態を確認",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "公開状態を確認": {
+      "main": [
+        [
+          {
+            "node": "公開完了？",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "公開完了？": {
+      "main": [
+        [
+          {
+            "node": "投稿URLを取得",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ステータスを更新（失敗）",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "投稿URLを取得": {
+      "main": [
+        [
+          {
+            "node": "ステータスを更新（成功）",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ステータスを更新（成功）": {
+      "main": [
+        [
+          {
+            "node": "Discord通知（成功）",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ステータスを更新（失敗）": {
+      "main": [
+        [
+          {
+            "node": "Discord通知（失敗）",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": ""
+  },
+  "tags": []
+}

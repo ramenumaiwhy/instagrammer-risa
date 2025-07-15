@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ユーザーモデル
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts InstagramAccount[]
+  @@map("users")
+}
+
+// Instagramアカウントモデル
+model InstagramAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  username          String
+  accountId         String   @unique
+  accessToken       String
+  profilePictureUrl String?
+  followersCount    Int      @default(0)
+  followingCount    Int      @default(0)
+  postsCount        Int      @default(0)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts Post[]
+
+  @@map("instagram_accounts")
+}
+
+// 投稿モデル
+model Post {
+  id              String    @id @default(cuid())
+  accountId       String
+  caption         String    @db.Text
+  mediaUrl        String
+  mediaType       MediaType @default(IMAGE)
+  status          PostStatus @default(DRAFT)
+  scheduledAt     DateTime?
+  publishedAt     DateTime?
+  instagramPostId String?
+  permalink       String?
+  likesCount      Int       @default(0)
+  commentsCount   Int       @default(0)
+  impressions     Int       @default(0)
+  reach           Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  account     InstagramAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  media       Media[]
+  hashtags    Hashtag[]
+  schedules   Schedule[]
+  analytics   PostAnalytics[]
+
+  @@index([accountId, status])
+  @@index([scheduledAt])
+  @@map("posts")
+}
+
+// メディアモデル
+model Media {
+  id        String    @id @default(cuid())
+  postId    String
+  url       String
+  type      MediaType
+  order     Int       @default(0)
+  width     Int?
+  height    Int?
+  size      Int?
+  createdAt DateTime  @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("media")
+}
+
+// ハッシュタグモデル
+model Hashtag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  posts Post[]
+
+  @@map("hashtags")
+}
+
+// スケジュールモデル
+model Schedule {
+  id           String         @id @default(cuid())
+  postId       String
+  scheduledAt  DateTime
+  status       ScheduleStatus @default(PENDING)
+  attempts     Int            @default(0)
+  lastAttemptAt DateTime?
+  error        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([scheduledAt, status])
+  @@map("schedules")
+}
+
+// 投稿分析モデル
+model PostAnalytics {
+  id            String   @id @default(cuid())
+  postId        String
+  date          DateTime
+  likesCount    Int      @default(0)
+  commentsCount Int      @default(0)
+  savesCount    Int      @default(0)
+  sharesCount   Int      @default(0)
+  impressions   Int      @default(0)
+  reach         Int      @default(0)
+  engagement    Float    @default(0)
+  createdAt     DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, date])
+  @@index([postId])
+  @@map("post_analytics")
+}
+
+// Enum定義
+enum MediaType {
+  IMAGE
+  VIDEO
+  CAROUSEL
+  REEL
+}
+
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
+}
+
+enum ScheduleStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
